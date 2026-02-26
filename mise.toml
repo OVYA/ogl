@@ -1,10 +1,34 @@
 # mise configuration for ogl library
+[settings]
+experimental = true
+# task_output = "quiet"
+
+[tools.go]
+version = "latest"
+
+[hooks]
+preinstall = "true"
+postinstall = [
+  'mise generate git-pre-commit --task=pre-commit > "$(git rev-parse --git-path hooks)/pre-commit"',
+  'chmod +x "$(git rev-parse --git-path hooks)/pre-commit"',
+  "mise run setup",
+  "mise run doctor"
+]
 
 [shell_alias]
 mr = "mise run"
 
 [vars]
 GOTESTSUM_OPTIONS = "--format testdox"
+
+[tasks.setup]
+description = "Bootstrap repo deps"
+run = "go mod download"
+alias = "update"
+
+[tasks.pre-commit]
+description = "Pre-commit checks (can be run manually or as git hook)"
+run = "./scripts/pre-commit.sh"
 
 [tasks.test]
 description = "Run all tests with gotestsum"
@@ -57,3 +81,8 @@ echo "Starting documentation server..."
 echo "Open http://localhost:6060/pkg/github.com/ovya/ogl/ in your browser"
 godoc -http=:6060
 """
+
+[tasks.doctor]
+description = "Show tool versions and key environment info"
+run = "./scripts/doctor.sh"
+alias = "dr"
