@@ -11,6 +11,7 @@ require (
 	github.com/lib/pq v1.11.2
 	github.com/lmittmann/tint v1.1.3
 	github.com/mattn/go-isatty v0.0.20
+	github.com/pressly/goose/v3 v3.0.0-00010101000000-000000000000
 	github.com/rotisserie/eris v0.5.4
 	github.com/rs/cors v1.11.1
 	github.com/sethvargo/go-envconfig v1.3.0
@@ -107,4 +108,4 @@ require (
 
 tool gotest.tools/gotestsum
 
-replace github.com/pressly/goose/v3 => github.com/pivaldi/goose/v3 v3.27.0-pr1
+replace github.com/pressly/goose/v3 => github.com/pivaldi/goose/v3 v3.27.1
