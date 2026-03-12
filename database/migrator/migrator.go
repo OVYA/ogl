@@ -34,7 +34,6 @@ type Migrator struct {
 func New(db *sql.DB, fsys fs.FS, dir string, optionsF ...goose.OptionsFunc) *Migrator {
 	// Set goose to use the provided file system
 	goose.SetBaseFS(fsys)
-	_ = goose.SetDialect("postgres")
 
 	return &Migrator{
 		db:       db,

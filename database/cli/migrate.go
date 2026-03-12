@@ -9,7 +9,7 @@ import (
 
 	"github.com/fatih/color"
 	_ "github.com/lib/pq"
-	"github.com/ovya/ogl/postgres/migrator"
+	"github.com/ovya/ogl/database/migrator"
 	"github.com/rotisserie/eris"
 	"github.com/spf13/cobra"
 )
@@ -32,12 +32,10 @@ func NewMigrateCmd(m *migrator.Migrator) *cobra.Command {
 		Use:   "up",
 		Short: "Run all pending migrations",
 		RunE: func(_ *cobra.Command, _ []string) error {
-			version, err := m.Up(ctx)
+			_, err := m.Up(ctx)
 			if err != nil {
 				return eris.Wrap(err, "error running pending migrations")
 			}
-
-			fmt.Printf("\nMigrations complete.\nMigrations at version: %d\n", version)
 
 			return nil
 		},
@@ -47,12 +45,10 @@ func NewMigrateCmd(m *migrator.Migrator) *cobra.Command {
 		Use:   "down",
 		Short: "Rollback the last migration",
 		RunE: func(_ *cobra.Command, _ []string) error {
-			version, err := m.Down(ctx)
+			_, err := m.Down(ctx)
 			if err != nil {
 				return eris.Wrap(err, "error rollbacking the last migration")
 			}
-
-			fmt.Printf("\nRollback complete. Migrations at version: %d\n", version)
 
 			return nil
 		},
@@ -62,12 +58,10 @@ func NewMigrateCmd(m *migrator.Migrator) *cobra.Command {
 		Use:   "version",
 		Short: "Retrieves the current migrations' version",
 		RunE: func(_ *cobra.Command, _ []string) error {
-			version, err := m.Version(ctx)
+			_, err := m.Version(ctx)
 			if err != nil {
 				return eris.Wrap(err, "error retrieving migrations' version")
 			}
-
-			fmt.Printf("\nMigrations at version: %d\n", version)
 
 			return nil
 		},
@@ -121,7 +115,8 @@ func NewMigrateCmd(m *migrator.Migrator) *cobra.Command {
 				return eris.Wrap(err, "error retrieving migrations' version")
 			}
 
-			fmt.Printf("\nMigration created: %s\n", filePath)
+			msg := color.GreenString("Migration created:")
+			fmt.Printf("\n%s %s\n", msg, filePath)
 
 			return nil
 		},
@@ -143,12 +138,10 @@ func NewMigrateCmd(m *migrator.Migrator) *cobra.Command {
 		Use:   "fix",
 		Short: "Fix migrations' order",
 		RunE: func(_ *cobra.Command, _ []string) error {
-			version, err := m.Fix(ctx)
+			_, err := m.Fix(ctx)
 			if err != nil {
 				return eris.Wrap(err, "fixing migrations failed")
 			}
-
-			fmt.Printf("\nMigrations at version: %d\n", version)
 
 			return nil
 		},
@@ -173,12 +166,10 @@ func NewMigrateCmd(m *migrator.Migrator) *cobra.Command {
 				return nil
 			}
 
-			version, err := m.Reset(ctx)
+			_, err = m.Reset(ctx)
 			if err != nil {
 				return eris.Wrap(err, "rolling back all migrations")
 			}
-
-			fmt.Printf("\nMigrations at version: %d\n", version)
 
 			return nil
 		},
