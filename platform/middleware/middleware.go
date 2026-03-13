@@ -10,7 +10,7 @@ import (
 
 	connectcors "connectrpc.com/cors"
 	"github.com/google/uuid"
-	"github.com/ovya/ogl/platform"
+	"github.com/ovya/ogl/platform/config"
 	"github.com/rs/cors"
 )
 
@@ -42,6 +42,15 @@ const (
 	// We use an unexported type to avoid collisions with other packages.
 	requestIDKey contextKey = iota
 )
+
+func GetRequestID(ctx context.Context) string {
+	id, ok := ctx.Value(requestIDKey).(string)
+	if !ok {
+		return ""
+	}
+
+	return id
+}
 
 // LoggingMiddleware returns a runner.Middleware that logs every request.
 func LoggingMiddleware(logger *slog.Logger, withPayload bool) Middleware {
@@ -105,7 +114,7 @@ func LoggingMiddleware(logger *slog.Logger, withPayload bool) Middleware {
 }
 
 // CORSMiddleware adds CORS support for Connect, gRPC, and gRPC-Web
-func CORSMiddleware(conf platform.Config) Middleware {
+func CORSMiddleware(conf config.Config) Middleware {
 	allowedOrigins := "*"
 	if conf.GetAppEnv().String() != "development" {
 		allowedOrigins = conf.GetServerHost()

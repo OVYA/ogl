@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/ovya/ogl/oglcore"
-	"github.com/ovya/ogl/platform"
+	"github.com/ovya/ogl/platform/config"
 	"github.com/ovya/ogl/platform/middleware"
 	"github.com/rotisserie/eris"
 	"golang.org/x/net/http2"
@@ -31,7 +31,7 @@ type Pinger interface {
 }
 
 type App struct {
-	config      platform.Config
+	config      config.Config
 	logger      *slog.Logger
 	modules     []oglcore.Module
 	db          Pinger                  // Interface! No pgxpool leak here.
@@ -39,7 +39,7 @@ type App struct {
 }
 
 // New creates a new Server Application instance
-func New(cfg platform.Config, logger *slog.Logger, db Pinger, modules []oglcore.Module, mw ...middleware.Middleware) *App {
+func New(cfg config.Config, logger *slog.Logger, db Pinger, modules []oglcore.Module, mw ...middleware.Middleware) *App {
 	return &App{
 		config:      cfg,
 		logger:      logger,
