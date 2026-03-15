@@ -1,10 +1,10 @@
-package platform
+package oglplatform
 
 import (
 	"context"
 	"log/slog"
 
-	"github.com/ovya/ogl/platform/middleware"
+	oglmiddleware "github.com/ovya/ogl/platform/middleware"
 	"github.com/rotisserie/eris"
 )
 
@@ -22,7 +22,7 @@ func SafeGo(ctx context.Context, logger *slog.Logger, fn func()) {
 		defer func() {
 			if rec := recover(); rec != nil {
 				// Try to get the Request ID (if this worker was spawned from an HTTP handler)
-				reqID := middleware.GetRequestID(ctx)
+				reqID := oglmiddleware.GetRequestID(ctx)
 
 				// Wrap the panic into eris stack trace
 				var err error

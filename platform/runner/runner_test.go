@@ -1,4 +1,4 @@
-package runner
+package oglrunner
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ovya/ogl/oglcore"
+	oglcore "github.com/ovya/ogl/platform/core"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -62,44 +62,39 @@ type MockModule struct {
 func (m *MockModule) RegisterRoutes(mux *http.ServeMux) {
 	m.Called(mux)
 }
-func (m *MockModule) StartWorkers(ctx context.Context) error {
+func (m *MockModule) Start(ctx context.Context) error {
 	args := m.Called(ctx)
 	// Block until context is done to simulate worker
 	<-ctx.Done()
 	return args.Error(0)
 }
+
+func (m *MockModule) GetName() string {
+	return "mockedApp"
+}
+
 func (m *MockModule) Close() error {
 	args := m.Called()
 	return args.Error(0)
 }
 
 func TestNew(t *testing.T) {
-	cfg := new(MockConfig)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	db := new(MockPinger)
 
-	app := New(cfg, logger, db, nil)
+	app := New(logger, nil)
 	assert.NotNil(t, app)
-	assert.Equal(t, cfg, app.config)
 	assert.Equal(t, logger, app.logger)
-	assert.Equal(t, db, app.db)
 }
 
 func TestApp_Run(t *testing.T) {
-	// Setup
-	cfg := new(MockConfig)
-	cfg.On("GetAppName").Return("test-app")
-	cfg.On("GetServerPort").Return(":0") // Random port
-
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	db := new(MockPinger)
 
 	mod := new(MockModule)
 	mod.On("RegisterRoutes", mock.Anything).Return()
 	mod.On("StartWorkers", mock.Anything).Return(nil)
 	mod.On("Close").Return(nil)
 
-	app := New(cfg, logger, db, []oglcore.Module{mod})
+	app := New(logger, []oglcore.Module{mod})
 
 	// Run
 	ctx, cancel := context.WithCancel(context.Background())
@@ -124,5 +119,4 @@ func TestApp_Run(t *testing.T) {
 	}
 
 	mod.AssertExpectations(t)
-	cfg.AssertExpectations(t)
 }

@@ -1,5 +1,3 @@
-package uow
-
 // Package uow provides a generic Unit of Work (UoW) and database execution
 // engine for PostgreSQL using pgx/v5.
 //
@@ -72,4 +70,4 @@ package uow
 //	        }
 //
 //	        return nil
-//
+package ogluow

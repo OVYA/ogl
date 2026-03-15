@@ -1,4 +1,4 @@
-package outbox
+package ogloutbox
 
 import (
 	"context"
@@ -7,23 +7,23 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/ovya/ogl/oglevents"
+	pfevents "github.com/ovya/ogl/platform/events"
 	"github.com/rotisserie/eris"
 )
 
 // EventsRelay coordinates the reliable transfer of events from a database outbox
 // table to an external messaging system (SystemEventBus).
 type EventsRelay struct {
-	pool      *pgxpool.Pool            // The database connection pool.
-	bus       oglevents.SystemEventBus // The transport mechanism (NATS, RabbitMQ, etc.).
-	logger    *slog.Logger             // Structured logger for operational monitoring.
-	interval  time.Duration            // Frequency at which the relay polls the database.
-	tableName string                   // The specific SQL table to poll (e.g., "todo_events").
+	pool      *pgxpool.Pool           // The database connection pool.
+	bus       pfevents.SystemEventBus // The transport mechanism (NATS, RabbitMQ, etc.).
+	logger    *slog.Logger            // Structured logger for operational monitoring.
+	interval  time.Duration           // Frequency at which the relay polls the database.
+	tableName string                  // The specific SQL table to poll (e.g., "todo_events").
 }
 
 func NewEnventsRelay(
 	pool *pgxpool.Pool,
-	bus oglevents.SystemEventBus,
+	bus pfevents.SystemEventBus,
 	logger *slog.Logger,
 	tableName string,
 ) *EventsRelay {

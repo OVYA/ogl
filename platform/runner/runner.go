@@ -1,10 +1,10 @@
-package runner
+package oglrunner
 
 import (
 	"context"
 	"log/slog"
 
-	"github.com/ovya/ogl/oglcore"
+	oglcore "github.com/ovya/ogl/platform/core"
 	"github.com/rotisserie/eris"
 	"golang.org/x/sync/errgroup"
 )

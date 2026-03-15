@@ -1,8 +1,8 @@
-package eventbus
+package pfevents
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -59,13 +59,13 @@ func TestWatermillBus_Publish_Error(t *testing.T) {
 	ctx := context.Background()
 	payload := []byte("test-payload")
 	eventType := "test-event"
-	expectedErr := errors.New("publish error")
+	expectedErr := fmt.Errorf("publish error")
 
 	mockPub.On("Publish", eventType, mock.Anything).Return(expectedErr)
 
 	err := bus.Publish(ctx, eventType, payload)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "watermillBus publishing error")
+	assert.Contains(t, err.Error(), "publishing test-event to the topic failed")
 	assert.Contains(t, err.Error(), expectedErr.Error())
 	mockPub.AssertExpectations(t)
 }

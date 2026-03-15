@@ -1,4 +1,4 @@
-package migrator
+package oglmigrator
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	oglstring "github.com/ovya/ogl/oglstring"
+	oglstring "github.com/ovya/ogl/string"
 	"github.com/pressly/goose/v3"
 )
 

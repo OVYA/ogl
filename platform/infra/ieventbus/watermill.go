@@ -1,11 +1,11 @@
-package oglevents
+package pfieventbus
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/rotisserie/eris"
 )
 
 // WatermillBus implements your workers.SystemEventBus interface
@@ -13,21 +13,21 @@ type WatermillBus struct {
 	publisher message.Publisher
 }
 
-// NewWatermillBus wraps a generic Watermill publisher
+// NewWatermillBus wraps any Watermill publisher (GoChannel, Redis, RabbitMQ)
 func NewWatermillBus(pub message.Publisher) *WatermillBus {
 	return &WatermillBus{
 		publisher: pub,
 	}
 }
 
-// Publish converts domain event into a Watermill message and sends it to a topic
+// Publish translates your domain's []byte payload into a Watermill message
 func (b *WatermillBus) Publish(ctx context.Context, eventType string, payload []byte) error {
+	// Create a Watermill message with a unique ID
 	msg := message.NewMessage(watermill.NewUUID(), payload)
-	msg.SetContext(ctx)
-	err := b.publisher.Publish(eventType, msg)
-	if err != nil {
-		return fmt.Errorf("publishing %s to the topic failed: %w", eventType, err)
-	}
 
-	return nil
+	// Pass the context along (great for distributed tracing later!)
+	msg.SetContext(ctx)
+
+	// Send it to the Watermill engine
+	return eris.Wrap(b.publisher.Publish(eventType, msg), "watermillBus publishing error")
 }

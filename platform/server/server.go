@@ -1,4 +1,3 @@
-// shared/platform/server.go
 package oglserver
 
 import (

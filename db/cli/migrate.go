@@ -1,4 +1,4 @@
-package pgcli
+package oglpgcli
 
 import (
 	"bufio"
@@ -9,13 +9,13 @@ import (
 
 	"github.com/fatih/color"
 	_ "github.com/lib/pq"
-	"github.com/ovya/ogl/database/migrator"
+	oglmigrator "github.com/ovya/ogl/db/migrator"
 	"github.com/rotisserie/eris"
 	"github.com/spf13/cobra"
 )
 
 // NewMigrateCmd creates the migrate command with subcommands.
-func NewMigrateCmd(m *migrator.Migrator) *cobra.Command {
+func NewMigrateCmd(m *oglmigrator.Migrator) *cobra.Command {
 	migrateCmd := &cobra.Command{
 		Use:   "migrate",
 		Short: "Database migration commands",
@@ -87,7 +87,7 @@ func NewMigrateCmd(m *migrator.Migrator) *cobra.Command {
 			description = strings.TrimSpace(description)
 
 			// Validate description
-			if err := migrator.ValidateDescription(description); err != nil {
+			if err := oglmigrator.ValidateDescription(description); err != nil {
 				return fmt.Errorf("error retrieving description: %w", err)
 			}
 
@@ -100,12 +100,12 @@ func NewMigrateCmd(m *migrator.Migrator) *cobra.Command {
 			}
 			choiceStr = strings.TrimSpace(choiceStr)
 
-			var mType migrator.MigrationType
+			var mType oglmigrator.MigrationType
 			switch choiceStr {
 			case "1":
-				mType = migrator.SQLMigration
+				mType = oglmigrator.SQLMigration
 			case "2":
-				mType = migrator.GoMigration
+				mType = oglmigrator.GoMigration
 			default:
 				return eris.New("invalid migration type, choose 1 or 2")
 			}

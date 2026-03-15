@@ -1,4 +1,4 @@
-package middleware
+package oglmiddleware
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 
 	connectcors "connectrpc.com/cors"
 	"github.com/google/uuid"
-	"github.com/ovya/ogl/platform/config"
+	oglconfig "github.com/ovya/ogl/platform/config"
 	"github.com/rs/cors"
 )
 
@@ -114,7 +114,7 @@ func LoggingMiddleware(logger *slog.Logger, withPayload bool) Middleware {
 }
 
 // CORSMiddleware adds CORS support for Connect, gRPC, and gRPC-Web
-func CORSMiddleware(conf config.Config) Middleware {
+func CORSMiddleware(conf oglconfig.Config) Middleware {
 	allowedOrigins := "*"
 	if conf.GetAppEnv().String() != "development" {
 		allowedOrigins = conf.GetServerHost()

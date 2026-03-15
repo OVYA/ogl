@@ -1,4 +1,4 @@
-package migrator
+package oglmigrator
 
 import (
 	"fmt"

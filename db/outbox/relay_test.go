@@ -1,4 +1,4 @@
-package outbox
+package ogloutbox
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/ovya/ogl/oglevents"
+	"github.com/ovya/ogl/platform/pfevents"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
@@ -135,7 +135,7 @@ func TestOutboxRelay_Start_ProcessesPeriodicBatches(t *testing.T) {
 
 func TestOutboxRelay_SystemEventBus_Interface(t *testing.T) {
 	// Verify that mockSystemEventBus implements the interface
-	var _ oglevents.SystemEventBus = (*mockSystemEventBus)(nil)
+	var _ pfevents.SystemEventBus = (*mockSystemEventBus)(nil)
 
 	mockBus := &mockSystemEventBus{}
 	err := mockBus.Publish(context.Background(), "TestEvent", []byte(`{"data":"test"}`))
