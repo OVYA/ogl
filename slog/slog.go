@@ -98,7 +98,7 @@ func IOTxtHandler(
 	return handler
 }
 
-// TODO: replace appEnv test to enum (json, txt, etc)
+// TODO: replace appEnv by an format type (enum json, txt, etc)
 func New(appEnv string, logLevel slog.Level) (*slog.Logger, error) {
 	if appEnv == "" {
 		return nil, eris.New("appEnv not set")
@@ -128,7 +128,6 @@ func New(appEnv string, logLevel slog.Level) (*slog.Logger, error) {
 
 		return slog.New(handler), nil
 	}
-
 	baseHandler := StdoutTxtHandler(logLevel, replaceErr)
 
 	return slog.New(&erisPostPrintHandler{Handler: baseHandler}), nil

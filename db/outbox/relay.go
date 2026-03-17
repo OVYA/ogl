@@ -64,14 +64,14 @@ func (r *EventsRelay) processBatch(ctx context.Context) error {
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	// 2. Fetch unpublished events (Lock them so other workers ignore them)
-	query := `
+	query := fmt.Sprintf(`
 		SELECT id, event_type, payload
-		FROM events
+		FROM %s
 		WHERE published_at IS NULL
 		ORDER BY occurred_at ASC
 		LIMIT 100
 		FOR UPDATE SKIP LOCKED
-	`
+	`, r.tableName)
 	rows, err := tx.Query(ctx, query)
 	if err != nil {
 		return eris.Wrap(err, "fetching unpublished events failed")
