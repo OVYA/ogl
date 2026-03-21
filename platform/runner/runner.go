@@ -11,10 +11,10 @@ import (
 
 type App struct {
 	logger  *slog.Logger
-	modules []oglcore.Module
+	modules []oglcore.App
 }
 
-func New(logger *slog.Logger, modules []oglcore.Module) *App {
+func New(logger *slog.Logger, modules []oglcore.App) *App {
 	return &App{logger: logger, modules: modules}
 }
 
@@ -27,7 +27,7 @@ func (a *App) Run(ctx context.Context) error {
 	for _, m := range a.modules {
 		g.Go(func() error {
 			// This blocks until the module crashes or gCtx is canceled
-			return eris.Wrapf(m.Start(gCtx), "the module %s failed", m.GetName())
+			return eris.Wrapf(m.Start(gCtx), "module failed")
 		})
 	}
 

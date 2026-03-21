@@ -36,20 +36,36 @@ var (
 // SaveCurrentPID Writes a pid file, but first make sure it doesn't exist with a running pid.
 // https://gist.github.com/davidnewhall/3627895a9fc8fa0affbd747183abca39
 func SaveCurrentPID(fileName string) error {
-	if piddata, err := os.ReadFile(fileName); err == nil {
-		if pid, err := strconv.Atoi(string(piddata)); err == nil {
-			if process, err := os.FindProcess(pid); err == nil {
-				// sig is 0, then no signal is sent, but error checking is still performed;
-				// this can be used to check for the existence of a process ID or process group ID.
-				if err := process.Signal(syscall.Signal(0)); err != nil {
-					return fmt.Errorf("running process %d error: %w", pid, err)
-				}
-			}
-		}
+	piddata, err := os.ReadFile(fileName)
+	if err != nil {
+		// pidfile doesn't exist — safe to proceed.
+		return writePID(fileName)
 	}
 
-	// If we get here, then the pidfile didn't exist, or the pid belong to the user running this app or
+	pid, err := strconv.Atoi(string(piddata))
+	if err != nil {
+		// pidfile content is not a valid PID — safe to overwrite.
+		return writePID(fileName)
+	}
+
+	process, err := os.FindProcess(pid)
+	if err != nil {
+		// Process not found — safe to overwrite.
+		return writePID(fileName)
+	}
+
+	// sig is 0, then no signal is sent, but error checking is still performed;
+	// this can be used to check for the existence of a process ID or process group ID.
+	if err := process.Signal(syscall.Signal(0)); err != nil {
+		return fmt.Errorf("running process %d error: %w", pid, err)
+	}
+
+	// If we get here, then the pid belongs to the user running this app or
 	// no process with this pid exists.
+	return writePID(fileName)
+}
+
+func writePID(fileName string) error {
 	err := os.WriteFile(fileName, fmt.Appendf(nil, "%d", os.Getpid()), os.FileMode(defaultPIDPermsNum))
 
 	return fmt.Errorf("save current pid failed: %w", err)

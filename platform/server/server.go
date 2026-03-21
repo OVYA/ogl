@@ -15,15 +15,14 @@ import (
 
 // HTTPServer is a generic worker that manages the lifecycle of an HTTP server.
 type HTTPServer struct {
-	server  *http.Server
-	logger  *slog.Logger
-	appName string
-	cfg     oglpfconfig.Server
+	server *http.Server
+	logger *slog.Logger
+	cfg    oglpfconfig.Server
 }
 
 // NewHTTPServer creates a pre-configured server ready to be started.
 // TODO: add routes for monitoring
-func NewHTTPServer(appName, environment string,
+func NewHTTPServer(environment string,
 	cfg *oglpfconfig.Server, handler http.Handler, logger *slog.Logger) *HTTPServer {
 	cfg.SetDefaults()
 
@@ -51,9 +50,8 @@ func NewHTTPServer(appName, environment string,
 			ReadHeaderTimeout: cfg.ReadHeaderTimeout,
 			IdleTimeout:       cfg.IdleTimeout,
 		},
-		logger:  logger,
-		appName: appName,
-		cfg:     *cfg,
+		logger: logger,
+		cfg:    *cfg,
 	}
 }
 
@@ -63,9 +61,10 @@ func (s *HTTPServer) Start(ctx context.Context) error {
 
 	// 1. Start the server in the background
 	go func() {
-		s.logger.Info("starting http server", "name", s.appName, "addr", s.server.Addr)
+		s.logger.Info("starting http server", "addr", s.server.Addr)
 		if err := s.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			errChan <- eris.Wrapf(err, "server %s crashed", s.appName)
+			s.logger.Error("server crashed")
+			errChan <- eris.Wrap(err, "server crashed")
 		}
 		close(errChan)
 	}()
@@ -78,16 +77,19 @@ func (s *HTTPServer) Start(ctx context.Context) error {
 
 	case <-ctx.Done():
 		// The global context was canceled (Ctrl+C). Time to shut down cleanly.
-		s.logger.Info("initiating graceful shutdown", "name", s.appName)
+		s.logger.Info("initiating graceful shutdown")
 
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), s.cfg.ShutdownTimeout)
 		defer cancel()
 
 		if err := s.server.Shutdown(shutdownCtx); err != nil {
-			return eris.Wrapf(err, "failed to shutdown server %s cleanly", s.appName)
+			msg := "failed to shutdown server %s cleanly"
+			s.logger.Error(msg)
+
+			return eris.Wrap(err, msg)
 		}
 
-		s.logger.Info("server stopped gracefully", "name", s.appName)
+		s.logger.Info("server stopped gracefully")
 
 		return nil
 	}

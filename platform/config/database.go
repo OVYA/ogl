@@ -13,6 +13,7 @@ type Database struct {
 	Host     string `mapstructure:"host"`
 	Port     Port   `mapstructure:"port"`
 	Name     string `mapstructure:"name"`
+	SSLMode  string `mapstructure:"sslmode"`
 }
 
 func (d *Database) URL() string {
@@ -23,7 +24,7 @@ func (d *Database) URL() string {
 	}
 
 	q := u.Query()
-	q.Add("sslmode", "disable")
+	q.Add("sslmode", d.SSLMode)
 	u.RawQuery = q.Encode()
 
 	if d.User != "" {

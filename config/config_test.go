@@ -43,6 +43,27 @@ func (c *TestConfig) GetAppEnv() fmt.Stringer {
 	return envString(c.Environment)
 }
 
+// setEnv sets env vars for the duration of a test, restoring originals on cleanup.
+func setEnv(t *testing.T, envs map[string]string) {
+	t.Helper()
+	originals := make(map[string]string, len(envs))
+	for k := range envs {
+		originals[k] = os.Getenv(k)
+	}
+	t.Cleanup(func() {
+		for k, orig := range originals {
+			if orig != "" {
+				os.Setenv(k, orig)
+			} else {
+				os.Unsetenv(k)
+			}
+		}
+	})
+	for k, v := range envs {
+		require.NoError(t, os.Setenv(k, v))
+	}
+}
+
 func TestContext_Fill_MissingEnvironmentVariables(t *testing.T) {
 	resetViper()
 	defer resetViper()
@@ -60,28 +81,27 @@ name = "poc"
 	}
 
 	t.Run("empty environment variables map", func(t *testing.T) {
-		envs := map[string]string{}
-		configCtx := NewContext(ctx, "", mockFS, envs)
+		os.Unsetenv("APP_ENV")
+		os.Unsetenv("DB_PASSWORD")
+		configCtx := NewContext(ctx, mockFS, "")
 		config := &TestConfig{}
 		err := configCtx.Fill(config)
 		assert.Error(t, err, "Fill() should return error when required environment variables are missing")
 	})
 
 	t.Run("missing APP_ENV", func(t *testing.T) {
-		envs := map[string]string{
-			"DB_PASSWORD": "test_password",
-		}
-		configCtx := NewContext(ctx, "", mockFS, envs)
+		os.Unsetenv("APP_ENV")
+		os.Unsetenv("DB_PASSWORD")
+		configCtx := NewContext(ctx, mockFS, "")
 		config := &TestConfig{}
 		err := configCtx.Fill(config)
 		assert.Error(t, err, "Fill() should return error when APP_ENV is missing")
 	})
 
 	t.Run("missing DB_PASSWORD", func(t *testing.T) {
-		envs := map[string]string{
-			"APP_ENV": "test",
-		}
-		configCtx := NewContext(ctx, "", mockFS, envs)
+		setEnv(t, map[string]string{"APP_ENV": "test"})
+		os.Unsetenv("DB_PASSWORD")
+		configCtx := NewContext(ctx, mockFS, "")
 		config := &TestConfig{}
 		err := configCtx.Fill(config)
 		assert.Error(t, err, "Fill() should return error when DB_PASSWORD is missing")
@@ -89,8 +109,8 @@ name = "poc"
 }
 
 func TestContext_Fill_Success(t *testing.T) {
-	resetViper()       // Clean state before test
-	defer resetViper() // Clean state after test
+	resetViper()
+	defer resetViper()
 	ctx := context.Background()
 
 	mockFS := fstest.MapFS{
@@ -106,13 +126,13 @@ name = "poc"
 		},
 	}
 
-	envs := map[string]string{
+	setEnv(t, map[string]string{
 		"DB_PASSWORD": "test_password",
 		"APP_ENV":     "development",
-	}
+	})
 
 	config := &TestConfig{}
-	err := NewContext(ctx, "", mockFS, envs).Fill(config)
+	err := NewContext(ctx, mockFS, "").Fill(config)
 
 	require.NoError(t, err, "Fill() should not return error with valid environment variables")
 	require.NotNil(t, config.Database, "Config should have non-nil Database")
@@ -148,12 +168,12 @@ name = "poc"
 	}
 
 	// Environment-specific config is optional and should not cause an error
-	envs := map[string]string{
+	setEnv(t, map[string]string{
 		"DB_PASSWORD": "test_password",
 		"APP_ENV":     "nonexistent_env",
-	}
+	})
 
-	configCtx := NewContext(ctx, "", mockFS, envs)
+	configCtx := NewContext(ctx, mockFS, "")
 	config := &TestConfig{}
 	err := configCtx.Fill(config)
 
@@ -180,47 +200,17 @@ name = "poc"
 		},
 	}
 
-	// When envs is nil, Fill should use actual OS environment variables
-	configCtx := NewContext(ctx, "", mockFS, nil)
+	// When env vars are not set, Fill should use actual OS environment variables
+	configCtx := NewContext(ctx, mockFS, "")
 	config := &TestConfig{}
 	err := configCtx.Fill(config)
 
 	// We can't reliably test this without manipulating OS environment
-	// Just verify the function handles nil envs without panicking
+	// Just verify the function handles missing env vars without panicking
 	if err != nil {
 		// Expected to fail if OS env vars are not set
-		t.Logf("Fill() with nil envs failed as expected when env vars not set: %v", err)
+		t.Logf("Fill() with no env vars failed as expected when env vars not set: %v", err)
 	}
-}
-
-func TestEnvUnmarshal(t *testing.T) {
-	resetViper()
-	defer resetViper()
-	ctx := context.Background()
-
-	t.Run("with envs map", func(t *testing.T) {
-		config := &TestConfig{}
-		envs := map[string]string{
-			"DB_PASSWORD": "secret_pass",
-			"APP_ENV":     "production",
-		}
-
-		err := envUnmarshal(ctx, config, envs, "")
-		require.NoError(t, err, "envUnmarshal() should not return error with valid envs map")
-
-		assert.Equal(t, "production", config.Environment, "Environment should be set from envs map")
-		assert.Equal(t, "secret_pass", config.Database.Password, "Password should be set from envs map")
-	})
-
-	t.Run("with nil envs uses OS environment", func(t *testing.T) {
-		config := &TestConfig{}
-
-		// This will likely fail since OS env vars aren't set, but shouldn't panic
-		err := envUnmarshal(ctx, config, nil, "")
-		if err != nil {
-			t.Logf("envUnmarshal() with nil envs failed as expected: %v", err)
-		}
-	})
 }
 
 func TestContext_Fill_WithRealOSEnvironment(t *testing.T) {
@@ -239,32 +229,15 @@ name = "poc"
 		},
 	}
 
-	// Save original environment variables
-	origDBPassword := os.Getenv("DB_PASSWORD")
-	origAppEnv := os.Getenv("APP_ENV")
-	defer func() {
-		if origDBPassword != "" {
-			os.Setenv("DB_PASSWORD", origDBPassword)
-		} else {
-			os.Unsetenv("DB_PASSWORD")
-		}
-		if origAppEnv != "" {
-			os.Setenv("APP_ENV", origAppEnv)
-		} else {
-			os.Unsetenv("APP_ENV")
-		}
-	}()
+	setEnv(t, map[string]string{
+		"DB_PASSWORD": "os_test_password",
+		"APP_ENV":     "default",
+	})
 
-	// Set environment variables using os.Setenv
-	err := os.Setenv("DB_PASSWORD", "os_test_password")
-	require.NoError(t, err, "os.Setenv should not fail")
-	err = os.Setenv("APP_ENV", "default")
-	require.NoError(t, err, "os.Setenv should not fail")
-
-	// Fill config with nil envs to use OS environment
-	configCtx := NewContext(ctx, "", mockFS, nil)
+	// Fill config using OS environment
+	configCtx := NewContext(ctx, mockFS, "")
 	config := &TestConfig{}
-	err = configCtx.Fill(config)
+	err := configCtx.Fill(config)
 
 	require.NoError(t, err, "Fill() should not return error with OS environment variables set")
 	require.NotNil(t, config.Database, "Config should have non-nil Database")
@@ -309,13 +282,12 @@ name = "testdb"
 		},
 	}
 
-	// Set environment variables to use the testing environment
-	envs := map[string]string{
+	setEnv(t, map[string]string{
 		"DB_PASSWORD": "merged_password",
-		"APP_ENV":     "testing", // Environment name
-	}
+		"APP_ENV":     "testing",
+	})
 
-	configCtx := NewContext(ctx, "", mockFS, envs)
+	configCtx := NewContext(ctx, mockFS, "")
 	config := new(TestConfig)
 	err := configCtx.Fill(config)
 
@@ -360,12 +332,12 @@ host = "partial.example.com"
 		},
 	}
 
-	envs := map[string]string{
+	setEnv(t, map[string]string{
 		"DB_PASSWORD": "partial_password",
-		"APP_ENV":     "staging", // Environment name
-	}
+		"APP_ENV":     "staging",
+	})
 
-	configCtx := NewContext(ctx, "", mockFS, envs)
+	configCtx := NewContext(ctx, mockFS, "")
 	config := &TestConfig{}
 	err := configCtx.Fill(config)
 
@@ -404,7 +376,7 @@ name = "poc"
 		},
 	}
 
-	// Save original environment variables
+	// Save and unset required environment variables
 	origDBPassword := os.Getenv("DB_PASSWORD")
 	origAppEnv := os.Getenv("APP_ENV")
 	defer func() {
@@ -420,12 +392,10 @@ name = "poc"
 		}
 	}()
 
-	// Unset required environment variables
 	os.Unsetenv("DB_PASSWORD")
 	os.Unsetenv("APP_ENV")
 
-	// Fill config with nil envs should fail
-	configCtx := NewContext(ctx, "", mockFS, nil)
+	configCtx := NewContext(ctx, mockFS, "")
 	config := &TestConfig{}
 	err := configCtx.Fill(config)
 
@@ -440,12 +410,12 @@ func TestContext_Fill_MissingDefaultConfig(t *testing.T) {
 	// Empty filesystem - no default.toml
 	mockFS := fstest.MapFS{}
 
-	envs := map[string]string{
+	setEnv(t, map[string]string{
 		"DB_PASSWORD": "test_password",
 		"APP_ENV":     "default",
-	}
+	})
 
-	configCtx := NewContext(ctx, "", mockFS, envs)
+	configCtx := NewContext(ctx, mockFS, "")
 	config := &TestConfig{}
 	err := configCtx.Fill(config)
 
@@ -471,12 +441,12 @@ name = "poc"
 		},
 	}
 
-	envs := map[string]string{
+	setEnv(t, map[string]string{
 		"DB_PASSWORD": "test_password",
-		"APP_ENV":     "production", // Environment, not app name
-	}
+		"APP_ENV":     "production",
+	})
 
-	configCtx := NewContext(ctx, "", mockFS, envs)
+	configCtx := NewContext(ctx, mockFS, "")
 	config := &TestConfig{}
 	err := configCtx.Fill(config)
 
@@ -501,12 +471,12 @@ name = "poc"
 		},
 	}
 
-	envs := map[string]string{
+	setEnv(t, map[string]string{
 		"DB_PASSWORD": "test_password",
 		"APP_ENV":     "development",
-	}
+	})
 
-	configCtx := NewContext(ctx, "", mockFS, envs)
+	configCtx := NewContext(ctx, mockFS, "")
 	config := &TestConfig{}
 	err := configCtx.Fill(config)
 
@@ -536,12 +506,12 @@ name = "poc"
 		},
 	}
 
-	envs := map[string]string{
+	setEnv(t, map[string]string{
 		"DB_PASSWORD": "test_password",
-		"APP_ENV":     "production", // This is the environment name
-	}
+		"APP_ENV":     "production",
+	})
 
-	configCtx := NewContext(ctx, "", mockFS, envs)
+	configCtx := NewContext(ctx, mockFS, "")
 	config := &TestConfig{}
 	err := configCtx.Fill(config)
 
@@ -568,16 +538,46 @@ name = "poc"
 		},
 	}
 
-	envs := map[string]string{
+	setEnv(t, map[string]string{
 		"DB_PASSWORD": "test_password",
 		"APP_ENV":     "staging",
-	}
+	})
 
-	configCtx := NewContext(ctx, "", mockFS, envs)
+	configCtx := NewContext(ctx, mockFS, "")
 	config := &TestConfig{}
 	err := configCtx.Fill(config)
 
 	require.NoError(t, err, "Fill() should not return error")
 	assert.Equal(t, "my-app_v1.0", config.AppName, "AppName should handle special characters")
 	assert.Equal(t, "staging", config.Environment, "Environment should be staging")
+}
+
+func TestEnvUnmarshal(t *testing.T) {
+	resetViper()
+	defer resetViper()
+	ctx := context.Background()
+
+	t.Run("with envs map", func(t *testing.T) {
+		setEnv(t, map[string]string{
+			"DB_PASSWORD": "secret_pass",
+			"APP_ENV":     "production",
+		})
+
+		config := &TestConfig{}
+		err := envUnmarshal(ctx, config, nil, "")
+		require.NoError(t, err, "envUnmarshal() should not return error with valid envs map")
+
+		assert.Equal(t, "production", config.Environment, "Environment should be set from envs map")
+		assert.Equal(t, "secret_pass", config.Database.Password, "Password should be set from envs map")
+	})
+
+	t.Run("with nil envs uses OS environment", func(t *testing.T) {
+		config := &TestConfig{}
+
+		// This will likely fail since OS env vars aren't set, but shouldn't panic
+		err := envUnmarshal(ctx, config, nil, "")
+		if err != nil {
+			t.Logf("envUnmarshal() with nil envs failed as expected: %v", err)
+		}
+	})
 }

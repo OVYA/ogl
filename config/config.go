@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 
+	oglos "github.com/ovya/ogl/os"
 	"github.com/sethvargo/go-envconfig"
 	"github.com/spf13/viper"
 )
@@ -35,18 +36,18 @@ type Config interface {
 // NewContext creates a new configuration context.
 // The fs parameter must contain configs/default.toml and optionally configs/<APP_ENV>.toml.
 // If envs is nil, environment variables are read from the OS; otherwise the provided map is used.
-func NewContext(ctx context.Context, envprefix string, lfs fs.FS, envs map[string]string) *Context {
+func NewContext(ctx context.Context, lfs fs.FS, envprefix string) *Context {
 	return &Context{
 		ctx:    ctx,
 		fs:     lfs,
-		envs:   envs,
 		prefix: envprefix,
 	}
 }
 
 // Fill fills the configuration `config` from the context `c`.
 func (c *Context) Fill(config Config) error {
-	if err := envUnmarshal(c.ctx, config, c.envs, c.prefix); err != nil {
+	envs := oglos.EnvMap()
+	if err := envUnmarshal(c.ctx, config, envs, c.prefix); err != nil {
 		return err
 	}
 
