@@ -182,7 +182,7 @@ func TestGetExecutor_PreservesTransactionIdentity(t *testing.T) {
 
 func TestNewUnitOfWork(t *testing.T) {
 	pool := &pgxpool.Pool{}
-	uow := NewUnitOfWork(pool)
+	uow := New(pool)
 
 	assert.NotNil(t, uow, "should create a non-nil UnitOfWork")
 	assert.Equal(t, pool, uow.pool, "should store the pool reference")

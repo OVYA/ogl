@@ -37,7 +37,7 @@ type UnitOfWork struct {
 	pool *pgxpool.Pool
 }
 
-func NewUnitOfWork(pool *pgxpool.Pool) *UnitOfWork {
+func New(pool *pgxpool.Pool) *UnitOfWork {
 	return &UnitOfWork{pool: pool}
 }
 
