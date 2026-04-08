@@ -750,7 +750,7 @@ linters:
         # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#unexported-return
         - name: unexported-return
           severity: warning
-          disabled: true
+          disabled: false
           exclude: ['']
         # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#unhandled-error
         - name: unhandled-error
@@ -759,7 +759,8 @@ linters:
           exclude: ['']
           arguments:
             - '^fmt.Printf'
-            - 'myFunction'
+            - '^fmt.Println'
+            - '^fmt.Fprint'
         # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#unnecessary-format
         - name: unnecessary-format
           severity: warning
