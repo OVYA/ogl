@@ -76,6 +76,7 @@ func CreatePidFile(name string, perm os.FileMode) (lock *LockFile, err error) {
 	}
 	if err = lock.Lock(); err != nil {
 		_ = lock.Remove()
+
 		return lock, err
 	}
 	if err = lock.WritePid(); err != nil {
