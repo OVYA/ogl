@@ -1,6 +1,8 @@
 # .golangci.yml
 version: '2'
 run:
+  build-tags:
+    - system # test/system/ is entirely behind this tag; without it golangci-lint sees "no Go files" and fails
   go: '1.24'
   issues-exit-code: 1
   tests: false
@@ -761,6 +763,7 @@ linters:
             - '^fmt.Printf'
             - '^fmt.Println'
             - '^fmt.Fprint'
+            - '^fmt.Fprintln'
         # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#unnecessary-format
         - name: unnecessary-format
           severity: warning
